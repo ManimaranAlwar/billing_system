@@ -31,6 +31,10 @@ def load_user(user_id):
 def create_default_data():
     """Create default data if it doesn't exist"""
     with app.app_context():
+        # Ensure directories exist in writable space (/tmp on Vercel)
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['BARCODE_FOLDER'], exist_ok=True)
+        
         db.create_all()
         
         # Create admin user if not exists
