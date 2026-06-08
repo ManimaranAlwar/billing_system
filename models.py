@@ -107,14 +107,13 @@ class ShopSettings(db.Model):
     __tablename__ = 'shop_settings'
     
     id = db.Column(db.Integer, primary_key=True)
-    # Updated defaults to match the signboard you provided!
-    shop_name_ta = db.Column(db.String(200), default='தனிவிதா மளிகை ஸ்டோர்') 
-    shop_name_en = db.Column(db.String(200), default='Thanivitha Maligai Store')
-    address_ta = db.Column(db.Text, default='கள்ளக்குறிச்சி மெயின் ரோடு, கெங்கவராயன் பாளையம்')
-    address_en = db.Column(db.Text, default='Kallakurichi Main Road, Gengavarayanpalayam')
-    phone = db.Column(db.String(20), default='98849 43326') # Added numbers from signboard
-    phone_alt = db.Column(db.String(20), default='97514 73000') # Added alternative number
-    email = db.Column(db.String(100), default='contact@thanivitha.com')
+    shop_name_ta = db.Column(db.String(200), default='ALWAR ஸ்டோர்') 
+    shop_name_en = db.Column(db.String(200), default='ALWAR Store')
+    address_ta = db.Column(db.Text, default='உங்கள் முகவரி இங்கே')
+    address_en = db.Column(db.Text, default='Your Address Here')
+    phone = db.Column(db.String(20), default='+91 98765 43210')
+    phone_alt = db.Column(db.String(20), default='')
+    email = db.Column(db.String(100), default='contact@alwarstore.com')
     gst_no = db.Column(db.String(20), default='')
     default_gst = db.Column(db.Float, default=0) # Groceries often have 0% or specific GST
     loyalty_points_ratio = db.Column(db.Float, default=0.01)  # 1 point per ₹100

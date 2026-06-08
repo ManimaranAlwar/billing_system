@@ -220,7 +220,7 @@
         {
             match: /^\/login/,
             items: [
-                ['h3.fw-bold', 'text', 'Thanvitha Maligai'],
+                ['h3.fw-bold', 'text', 'ALWAR Store'],
                 ['p.text-muted', 'text', 'Secure admin login'],
                 ['label[for="username"]', 'html', '<i class="fas fa-user me-1"></i> Username'],
                 ['label[for="password"]', 'html', '<i class="fas fa-lock me-1"></i> Password'],
@@ -233,7 +233,7 @@
             match: /^\/$/,
             items: [
                 ['a[href="/login"]', 'text', 'Login'],
-                ['h1, h2, h3, h4, h5', 'text', 'Thanivitha Maligai Store', 0]
+                ['h1, h2, h3, h4, h5', 'text', 'ALWAR Store', 0]
             ]
         }
     ];

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}பில் #{{ order.bill_number[-8:] }} - தன்விதா மளிகை{% endblock %}
+{% block title %}பில் #{{ order.bill_number[-8:] }} - ALWAR ஸ்டோர்{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -96,8 +96,8 @@
         <div class="receipt-header">
             <div class="no-print mb-2"><i class="fas fa-shopping-basket fa-2x text-muted"></i></div>
             
-            <h2 class="receipt-title">{{ settings.shop_name_ta or 'தன்விதா மளிகை' }}</h2>
-            <div class="receipt-subtitle">{{ settings.shop_name_en or 'THANVITHA GROCERY' }}</div>
+            <h2 class="receipt-title">{{ settings.shop_name_ta or 'ALWAR ஸ்டோர்' }}</h2>
+            <div class="receipt-subtitle">{{ settings.shop_name_en or 'ALWAR STORE' }}</div>
             
             <div class="receipt-address">
                 {{ settings.address_ta }}<br>

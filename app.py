@@ -728,5 +728,8 @@ def import_products():
     return redirect(url_for('admin_products'))
 
 
+# Vercel serverless mode - ensure DB and defaults on startup
+# The create_default_data() function already runs at module level
+
 if __name__ == '__main__':
     app.run(debug=True)
