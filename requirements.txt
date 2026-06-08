@@ -1,6 +1,14 @@
-numpy==2.4.3
-reportlab
-SQLAlchemy>=2.0.0
 Flask==3.0.0
-psycopg2-binary  # Common for Vercel/PostgreSQL; swap if using MySQL/SQLite
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+SQLAlchemy>=2.0.0
+psycopg2-binary
 python-dotenv
+pandas
+openpyxl
+python-barcode
+qrcode
+Pillow
+reportlab
+numpy>=1.26.0
