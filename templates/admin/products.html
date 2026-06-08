@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}பொருட்கள் பட்டியல் - தன்விதா மளிகை ஸ்டோர்{% endblock %}
+
+{% block extra_css %}
+<style>
+    .custom-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .custom-card-header {
+        background: linear-gradient(135deg, var(--shop-primary) 0%, var(--shop-primary-dark) 100%);
+        color: white;
+        border-top-left-radius: 15px !important;
+        border-top-right-radius: 15px !important;
+        padding: 15px 20px;
+    }
+
+    .filter-control {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+    }
+    
+    .filter-control:focus {
+        border-color: var(--shop-primary);
+        box-shadow: 0 0 0 0.2rem rgba(0, 105, 92, 0.25);
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 105, 92, 0.05);
+    }
+    
+    .product-img-placeholder {
+        width: 40px;
+        height: 40px;
+        background-color: #e9ecef;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #adb5bd;
+    }
+
+    /* Stock Alert Badges */
+    .stock-ok { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .stock-low { background-color: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
+    .stock-out { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2 mb-5">
+    
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <h4 class="mb-0 fw-bold" style="color: var(--shop-primary-dark);">
+            <i class="fas fa-boxes-stacked text-warning me-2"></i> பொருட்கள் பட்டியல்
+        </h4>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('export_products') }}" class="btn btn-light border text-success shadow-sm" style="border-radius: 10px;">
+                <i class="fas fa-file-excel me-1"></i> <span class="d-none d-md-inline">Export</span>
+            </a>
+            
+            <button type="button" class="btn text-white shadow-sm fw-bold" style="background-color: #0288D1; border-radius: 10px;" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                <i class="fas fa-upload me-1"></i> Bulk Upload
+            </button>
+            
+            <a href="{{ url_for('add_product') }}" class="btn text-white shadow-sm fw-bold" style="background-color: var(--shop-accent); border-radius: 10px;">
+                <i class="fas fa-plus-circle me-1"></i> புதிய பொருள்
+            </a>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" style="border-radius: 15px; border: none;">
+                <div class="modal-header" style="background-color: var(--shop-primary); color: white; border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                    <h5 class="modal-title fw-bold" id="bulkUploadModalLabel"><i class="fas fa-file-import me-2"></i> மொத்தமாக பதிவேற்ற</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('import_products') }}" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body p-4">
+                        <p class="text-muted small mb-3">சரியான முறையில் வடிவமைக்கப்பட்ட Excel (.xlsx) அல்லது CSV கோப்பை தேர்ந்தெடுக்கவும்.</p>
+                        
+                        <div class="mb-4">
+                            <a href="{{ url_for('download_product_template') }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-1"></i> மாதிரி டெம்ப்ளேட் டவுன்லோட் (Sample Template)
+                            </a>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productFile" class="form-label fw-bold">கோப்பை தேர்ந்தெடுக்கவும்:</label>
+                            <input class="form-control form-control-lg" type="file" id="productFile" name="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0" style="border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ரத்து செய்</button>
+                        <button type="submit" class="btn text-white fw-bold" style="background-color: var(--shop-primary);">
+                            <i class="fas fa-cloud-upload-alt me-1"></i> பதிவேற்று
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card custom-card mb-4">
+        <div class="card-body p-3">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control filter-control border-start-0 ps-0" 
+                               placeholder="பொருள் பெயர், பிராண்ட் அல்லது பார்கோடு மூலம் தேடுக..." 
+                               style="border-radius: 0 10px 10px 0;" autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select id="categoryFilter" class="form-select filter-control">
+                        <option value="">அனைத்து வகைகளும் (All Categories)</option>
+                        {% set categories = [] %}
+                        {% for p in products %}
+                            {% if p.category and p.category.name_ta not in categories %}
+                                {% set _ = categories.append(p.category.name_ta) %}
+                                <option value="{{ p.category.name_ta }}">{{ p.category.name_ta }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card custom-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="productsTable">
+                    <thead class="table-light text-muted small">
+                        <tr>
+                            <th class="ps-3 d-none d-md-table-cell" width="5%">#</th>
+                            <th width="40%">பொருள் விவரம்</th>
+                            <th class="d-none d-md-table-cell" width="15%">வகை</th>
+                            <th width="15%">விலை (₹)</th>
+                            <th width="15%">இருப்பு</th>
+                            <th class="text-end pe-3" width="10%">செயல்</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr class="product-row">
+                            <td class="ps-3 d-none d-md-table-cell text-muted small">{{ loop.index }}</td>
+                            
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="product-img-placeholder me-3 d-none d-sm-flex">
+                                        {% if product.category and product.category.icon %}
+                                            <i class="{{ product.category.icon }}"></i>
+                                        {% else %}
+                                            <i class="fas fa-box"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold product-name" style="color: var(--shop-primary-dark);" data-name-ta="{{ product.name_ta }}" data-name-en="{{ product.name_en }}">
+                                            {{ product.name_ta }}
+                                            {% if not product.is_active %}
+                                                <span class="badge bg-secondary ms-1" style="font-size: 0.6rem;">Hidden</span>
+                                            {% endif %}
+                                        </h6>
+                                        <small class="text-muted product-brand">
+                                            {% if product.brand %}<i class="fas fa-tag me-1"></i>{{ product.brand }} | {% endif %}
+                                            {{ product.name_en }}
+                                        </small>
+                                        <div class="d-md-none mt-1">
+                                            <span class="badge bg-light text-dark border product-category" style="font-size: 0.7rem;" data-category-ta="{{ product.category.name_ta if product.category else 'à®ªà¯Šà®¤à¯' }}" data-category-en="{{ product.category.name_en if product.category else 'General' }}">
+                                                {{ product.category.name_ta if product.category else 'பொது' }}
+                                            </span>
+                                        </div>
+                                        <span class="d-none product-barcode">{{ product.barcode }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <td class="d-none d-md-table-cell">
+                                <span class="badge bg-light text-dark border product-category" data-category-ta="{{ product.category.name_ta if product.category else 'à®ªà¯Šà®¤à¯' }}" data-category-en="{{ product.category.name_en if product.category else 'General' }}">
+                                    <i class="{{ product.category.icon }} text-muted me-1" if product.category></i>
+                                    {{ product.category.name_ta if product.category else 'பொது' }}
+                                </span>
+                            </td>
+                            
+                            <td>
+                                <div class="fw-bold fs-6">₹{{ "%.2f"|format(product.price) }}</div>
+                                {% if product.mrp > product.price %}
+                                    <small class="text-muted text-decoration-line-through">₹{{ "%.2f"|format(product.mrp) }}</small>
+                                {% endif %}
+                                <div class="text-muted" style="font-size: 0.7rem;">GST: {{ product.gst_percentage }}%</div>
+                            </td>
+                            
+                            <td>
+                                {% if product.stock_quantity <= 0 %}
+                                    <span class="badge stock-out w-100 py-2">இருப்பு இல்லை<br>Out of Stock</span>
+                                {% elif product.stock_quantity <= product.min_stock_alert %}
+                                    <span class="badge stock-low w-100 py-2">{{ product.stock_quantity }} {{ product.unit }}<br>குறைவாக உள்ளது</span>
+                                {% else %}
+                                    <span class="badge stock-ok w-100 py-2">{{ product.stock_quantity }} {{ product.unit }}<br>போதுமானது</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('edit_product', id=product.id) }}" class="btn btn-sm btn-light border text-primary rounded-circle shadow-sm me-1" style="width: 35px; height: 35px; padding: 6px;" title="திருத்துக (Edit)">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                
+                                <form action="{{ url_for('delete_product', id=product.id) }}" method="POST" class="d-inline" onsubmit="return confirm('நிச்சயமாக இந்த பொருளை நீக்க விரும்புகிறீர்களா? (கவனிக்க: பழைய பில்களில் உள்ள பொருட்கள் நீக்கப்படாது)');">
+                                    <button type="submit" class="btn btn-sm btn-light border text-danger rounded-circle shadow-sm" style="width: 35px; height: 35px; padding: 6px;" title="நீக்குக (Delete)">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i><br>
+                                <h5>பொருட்கள் எதுவும் இல்லை</h5>
+                                <a href="{{ url_for('add_product') }}" class="btn btn-sm mt-2 text-white" style="background-color: var(--shop-accent);">
+                                    முதல் பொருளைச் சேர்க்கவும்
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const rows = document.querySelectorAll('.product-row');
+        
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const selectedCategory = categoryFilter.value.toLowerCase();
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.product-name').textContent.toLowerCase();
+                const brand = row.querySelector('.product-brand').textContent.toLowerCase();
+                const category = row.querySelector('.product-category').textContent.toLowerCase();
+                const barcode = row.querySelector('.product-barcode').textContent.toLowerCase();
+                
+                const matchesSearch = name.includes(searchTerm) || brand.includes(searchTerm) || barcode.includes(searchTerm);
+                const matchesCategory = selectedCategory === "" || category.includes(selectedCategory);
+                
+                if (matchesSearch && matchesCategory) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        searchInput.addEventListener('keyup', filterTable);
+        categoryFilter.addEventListener('change', filterTable);
+    });
+</script>
+{% endblock %}
+{% endblock %}

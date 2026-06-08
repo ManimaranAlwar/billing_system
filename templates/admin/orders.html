@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}ஆர்டர்கள் பட்டியல் - தன்விதா மளிகை ஸ்டோர்{% endblock %}
+
+{% block extra_css %}
+<style>
+    .custom-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    .custom-card-header {
+        background: linear-gradient(135deg, var(--shop-primary) 0%, var(--shop-primary-dark) 100%);
+        color: white;
+        border-top-left-radius: 15px !important;
+        border-top-right-radius: 15px !important;
+        padding: 15px 20px;
+        font-weight: bold;
+    }
+
+    .filter-control {
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .filter-control:focus {
+        border-color: var(--shop-primary);
+        box-shadow: 0 0 0 0.2rem rgba(0, 105, 92, 0.25);
+        background-color: #fff;
+    }
+
+    /* Table Styling */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 105, 92, 0.05);
+    }
+
+    .badge-payment {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    
+    .bg-cash { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .bg-upi { background-color: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+    .bg-card { background-color: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
+
+    .bill-id {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #555;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2 mb-5">
+    
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <h4 class="mb-0 fw-bold" style="color: var(--shop-primary-dark);">
+            <i class="fas fa-shopping-cart text-warning me-2"></i> விற்பனைப் பட்டியல்
+        </h4>
+        <button onclick="exportOrders()" class="btn text-white shadow-sm fw-bold" style="background-color: var(--shop-accent); border-radius: 10px;">
+            <i class="fas fa-file-excel me-1"></i> Excel தரவிறக்கம்
+        </button>
+    </div>
+    
+    <div class="card custom-card mb-4">
+        <div class="card-body p-3 p-md-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0" style="border-radius: 10px 0 0 10px;">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control filter-control border-start-0 ps-0" 
+                               placeholder="பில் எண் / பெயர் தேடுக..." style="border-radius: 0 10px 10px 0;">
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <input type="date" id="dateFilter" class="form-control filter-control" title="தேதி வாரியாக">
+                </div>
+                <div class="col-6 col-md-3">
+                    <select id="paymentFilter" class="form-select filter-control">
+                        <option value="">அனைத்து முறைகளும்</option>
+                        <option value="Cash">ரொக்கம் (Cash)</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Card">கார்டு (Card)</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button onclick="resetFilters()" class="btn btn-light border w-100 filter-control text-secondary">
+                        <i class="fas fa-undo me-1"></i> மீட்டமை
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card custom-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="ordersTable">
+                    <thead class="table-light text-muted small">
+                        <tr>
+                            <th class="ps-4 d-none d-lg-table-cell">#</th>
+                            <th>பில் விவரம்</th>
+                            <th class="d-none d-md-table-cell">வாடிக்கையாளர்</th>
+                            <th class="text-center">பொருட்கள்</th>
+                            <th class="text-end">மொத்தம் (₹)</th>
+                            <th class="text-center">முறை</th>
+                            <th class="text-end pe-4">செயல்</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr class="order-row">
+                            <td class="ps-4 d-none d-lg-table-cell text-muted small">{{ loop.index }}</td>
+                            
+                            <td>
+                                <span class="bill-id">{{ order.bill_number[-8:] }}</span><br>
+                                <small class="text-muted small-date">{{ order.order_date.strftime('%d/%m/%Y %I:%M %p') }}</small>
+                                <div class="d-none date-val">{{ order.order_date.strftime('%Y-%m-%d') }}</div>
+                            </td>
+                            
+                            <td class="d-none d-md-table-cell">
+                                {% if order.customer %}
+                                    <div class="fw-bold customer-name">{{ order.customer.name }}</div>
+                                    <small class="text-muted">{{ order.customer.phone }}</small>
+                                {% else %}
+                                    <span class="text-muted small customer-name">பொது</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">{{ order.items|length }}</span>
+                            </td>
+                            
+                            <td class="text-end">
+                                <div class="fw-bold" style="color: var(--shop-primary-dark);">₹{{ "%.0f"|format(order.grand_total) }}</div>
+                                {% if order.discount > 0 %}
+                                    <small class="text-danger">(-₹{{ "%.0f"|format(order.discount) }})</small>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-center">
+                                {% if order.payment_method == 'Cash' or order.payment_method == 'பணம்' %}
+                                    <span class="badge-payment bg-cash payment-val" data-pay="Cash">ரொக்கம்</span>
+                                {% elif order.payment_method == 'UPI' %}
+                                    <span class="badge-payment bg-upi payment-val" data-pay="UPI">UPI</span>
+                                {% else %}
+                                    <span class="badge-payment bg-card payment-val" data-pay="Card">கார்டு</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="{{ url_for('view_bill', id=order.id) }}" class="btn btn-sm btn-light border text-primary rounded-circle me-1" style="width:32px; height:32px; padding:4px;" title="பார்க்க">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('download_pdf', id=order.id) }}" class="btn btn-sm btn-light border text-danger rounded-circle" style="width:32px; height:32px; padding:4px;" title="PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-receipt fa-3x mb-3 opacity-25"></i>
+                                <h5>ஆர்டர்கள் எதுவும் இல்லை</h5>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // பில் தேடல் மற்றும் ஃபில்டர் லாஜிக்
+    function filterOrders() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const dateFilter = document.getElementById('dateFilter').value;
+        const paymentFilter = document.getElementById('paymentFilter').value;
+        const rows = document.querySelectorAll('.order-row');
+
+        rows.forEach(row => {
+            const billId = row.querySelector('.bill-id').textContent.toLowerCase();
+            const customerName = row.querySelector('.customer-name').textContent.toLowerCase();
+            const orderDate = row.querySelector('.date-val').textContent;
+            const paymentType = row.querySelector('.payment-val').getAttribute('data-pay');
+
+            const matchesSearch = billId.includes(searchText) || customerName.includes(searchText);
+            const matchesDate = !dateFilter || orderDate === dateFilter;
+            const matchesPayment = !paymentFilter || paymentType === paymentFilter;
+
+            row.style.display = (matchesSearch && matchesDate && matchesPayment) ? '' : 'none';
+        });
+    }
+
+    // ஈவென்ட் லிஸனர்கள்
+    document.getElementById('searchInput').addEventListener('input', filterOrders);
+    document.getElementById('dateFilter').addEventListener('change', filterOrders);
+    document.getElementById('paymentFilter').addEventListener('change', filterOrders);
+
+    function resetFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('dateFilter').value = '';
+        document.getElementById('paymentFilter').value = '';
+        filterOrders();
+    }
+
+    function exportOrders() {
+        window.location.href = "{{ url_for('export_orders') }}";
+    }
+</script>
+{% endblock %}
+{% endblock %}

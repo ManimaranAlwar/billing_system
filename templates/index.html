@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}தன்விதா மளிகை ஸ்டோர்{% endblock %}
+
+{% block content %}
+<div class="row min-vh-100 align-items-center">
+    <div class="col-md-8 mx-auto text-center mt-4">
+        
+        <div class="card shadow-sm border-0" style="border-radius: 20px; background-color: white;">
+            <div class="card-body p-4 p-md-5">
+                <div class="mb-4">
+                    <i class="fas fa-shopping-basket" style="font-size: 70px; color: var(--shop-primary);"></i>
+                </div>
+                
+                <h1 class="fw-bold mb-3" style="color: var(--shop-primary);">தன்விதா மளிகை ஸ்டோர்</h1>
+                
+                <p class="lead text-muted mb-3">
+                    எங்கள் மளிகை ஸ்டோருக்கு உங்களை அன்புடன் வரவேற்கிறோம்!
+                </p>
+                
+                <p class="mb-4 text-secondary">
+                    அனைத்து விதமான மளிகைப் பொருட்கள், அரிசி, பருப்பு வகைகள் மற்றும் வீட்டு உபயோகப் பொருட்கள் தரமானதாகவும் நியாயமான விலையிலும் கிடைக்கும்.
+                </p>
+                
+                {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('login') }}" class="btn btn-lg px-4 text-white shadow-sm" style="background-color: var(--shop-accent); border-radius: 15px;">
+                    <i class="fas fa-sign-in-alt me-2"></i> உள்நுழைய
+                </a>
+                {% else %}
+                <a href="{{ url_for('new_bill') }}" class="btn btn-lg px-4 text-white shadow-sm" style="background-color: var(--shop-accent); border-radius: 15px;">
+                    <i class="fas fa-receipt me-2"></i> புதிய பில் உருவாக்கு
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="row mt-4 mb-5">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-check-circle mb-3" style="font-size: 40px; color: var(--shop-primary);"></i>
+                        <h5 class="fw-bold" style="color: var(--shop-primary-dark);">தரமான பொருட்கள்</h5>
+                        <p class="text-muted small mb-0">உயர்தர மற்றும் சுத்தமான மளிகைப் பொருட்கள்</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-cubes mb-3" style="font-size: 40px; color: var(--shop-primary);"></i>
+                        <h5 class="fw-bold" style="color: var(--shop-primary-dark);">நிறைவான இருப்பு</h5>
+                        <p class="text-muted small mb-0">உங்கள் வீட்டிற்கு தேவையான அனைத்தும் ஒரே இடத்தில்</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-tags mb-3" style="font-size: 40px; color: var(--shop-primary);"></i>
+                        <h5 class="fw-bold" style="color: var(--shop-primary-dark);">சரியான விலை</h5>
+                        <p class="text-muted small mb-0">சரியான எடை மற்றும் நியாயமான விலை</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

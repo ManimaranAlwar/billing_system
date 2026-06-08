@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}{{ customer.name }} - வாடிக்கையாளர் விவரம்{% endblock %}
+
+{% block extra_css %}
+<style>
+    .custom-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    .custom-card-header {
+        background: linear-gradient(135deg, var(--shop-primary) 0%, var(--shop-primary-dark) 100%);
+        color: white;
+        border-top-left-radius: 15px !important;
+        border-top-right-radius: 15px !important;
+        padding: 15px 20px;
+        font-weight: bold;
+    }
+
+    .profile-icon-large {
+        width: 100px;
+        height: 100px;
+        background-color: rgba(0, 105, 92, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px auto;
+        color: var(--shop-primary);
+        font-size: 3rem;
+    }
+
+    .info-list p {
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    
+    .info-list i {
+        width: 25px;
+        color: var(--shop-primary);
+        text-align: center;
+    }
+
+    .stat-box {
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px 10px;
+        text-align: center;
+        border: 1px solid #eee;
+        height: 100%;
+    }
+    .stat-box i { font-size: 1.5rem; margin-bottom: 8px; color: var(--shop-accent); }
+    .stat-box h3 { font-size: 1.5rem; color: var(--shop-primary-dark); font-weight: bold; margin-bottom: 0; }
+    .stat-box h5 { color: #6c757d; font-size: 0.85rem; margin-bottom: 5px; }
+
+    .table-hover tbody tr:hover { background-color: rgba(0, 105, 92, 0.05); }
+    
+    .badge-cash { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .badge-upi { background-color: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+    .badge-card { background-color: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 fw-bold" style="color: var(--shop-primary-dark);">
+            <i class="fas fa-id-badge text-warning me-2"></i> வாடிக்கையாளர் விவரம்
+        </h4>
+        <a href="{{ url_for('admin_customers') }}" class="btn btn-sm btn-light border text-primary">
+            <i class="fas fa-arrow-left me-1"></i> பின்செல்க
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            
+            <div class="card custom-card">
+                <div class="card-body p-4 text-center">
+                    <div class="profile-icon-large shadow-sm">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h4 class="fw-bold mb-0" style="color: var(--shop-primary-dark);">{{ customer.name }}</h4>
+                    {% if customer.loyalty_points %}
+                        <span class="badge bg-warning text-dark mt-2 mb-3"><i class="fas fa-star me-1"></i>{{ customer.loyalty_points }} புள்ளிகள்</span>
+                    {% else %}
+                        <div class="mb-3"></div>
+                    {% endif %}
+                    
+                    <hr class="text-muted opacity-25">
+                    
+                    <div class="info-list text-start mt-3">
+                        <p><strong><i class="fas fa-phone-alt"></i></strong> {{ customer.phone }}</p>
+                        {% if customer.email %}
+                            <p><strong><i class="fas fa-envelope"></i></strong> {{ customer.email }}</p>
+                        {% endif %}
+                        {% if customer.address %}
+                            <p><strong><i class="fas fa-map-marker-alt"></i></strong> {{ customer.address }}</p>
+                        {% endif %}
+                        {% if customer.gst_no %}
+                            <p><strong><i class="fas fa-file-invoice"></i> GST:</strong> {{ customer.gst_no }}</p>
+                        {% endif %}
+                        <p class="text-muted small mt-4 mb-0 text-center">
+                            <i class="fas fa-calendar-check me-1"></i> வாடிக்கையாளர் ஆன தேதி: {{ customer.created_at.strftime('%d/%m/%Y') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="stat-box shadow-sm">
+                        <i class="fas fa-shopping-bag"></i>
+                        <h5>மொத்த பில்கள்</h5>
+                        <h3>{{ orders|length }}</h3>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-box shadow-sm">
+                        <i class="fas fa-rupee-sign"></i>
+                        <h5>மொத்த செலவு</h5>
+                        <h3 class="text-success">₹{{ "%.0f"|format(total_spent) }}</h3>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="stat-box shadow-sm d-flex justify-content-between align-items-center px-4">
+                        <div class="text-start">
+                            <h5 class="mb-0">சராசரி பில்</h5>
+                            <small class="text-muted">ஒரு முறை வரும்போது</small>
+                        </div>
+                        <h3 class="text-info mb-0">₹{{ "%.0f"|format(avg_bill) }}</h3>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <div class="col-lg-8">
+            <div class="card custom-card h-100">
+                <div class="custom-card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-history text-warning me-2"></i> வாங்கிய பில்களின் வரலாறு</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light text-muted small">
+                                <tr>
+                                    <th class="ps-4">பில் எண்</th>
+                                    <th>தேதி</th>
+                                    <th class="text-center d-none d-sm-table-cell">பொருட்கள்</th>
+                                    <th class="text-end">மொத்தம் (₹)</th>
+                                    <th class="text-center">முறை</th>
+                                    <th class="text-end pe-4">செயல்</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td class="ps-4"><strong class="text-muted">{{ order.bill_number[-8:] }}</strong></td>
+                                    
+                                    <td>
+                                        {{ order.order_date.strftime('%d/%m/%y') }}<br>
+                                        <small class="text-muted">{{ order.order_date.strftime('%I:%M %p') }}</small>
+                                        <div class="d-sm-none small text-muted mt-1"><i class="fas fa-box me-1"></i>{{ order.items|length }} பொருள்</div>
+                                    </td>
+                                    
+                                    <td class="text-center d-none d-sm-table-cell">
+                                        <span class="badge bg-light text-dark border">{{ order.items|length }}</span>
+                                    </td>
+                                    
+                                    <td class="text-end fw-bold" style="color: var(--shop-primary-dark);">₹{{ "%.0f"|format(order.grand_total) }}</td>
+                                    
+                                    <td class="text-center">
+                                        {% if order.payment_method == 'Cash' or order.payment_method == 'பணம்' %}
+                                            <span class="badge badge-cash">ரொக்கம்</span>
+                                        {% elif order.payment_method == 'UPI' %}
+                                            <span class="badge badge-upi">UPI</span>
+                                        {% else %}
+                                            <span class="badge badge-card">கார்டு</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <td class="text-end pe-4">
+                                        <a href="{{ url_for('view_bill', id=order.id) }}" class="btn btn-sm btn-light border text-primary rounded-circle" style="width: 32px; height: 32px; padding: 4px;" title="பில்லைப் பார்க்க">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="fas fa-shopping-cart fa-3x mb-3 opacity-25"></i><br>
+                                        <h5>இவர் இதுவரை எந்தப் பொருளும் வாங்கவில்லை</h5>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

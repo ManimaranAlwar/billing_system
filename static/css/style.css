@@ -1,0 +1,312 @@
+/* Custom styles for Malligai Flower Shop */
+
+/* Tamil font support */
+@import url('https://fonts.googleapis.com/css2?family=Hind+Madurai:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Hind Madurai', sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Navigation */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+/* Cards */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Tables */
+.table {
+    background-color: white;
+    border-radius: 10px;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+/* Forms */
+.form-control, .form-select {
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Search results */
+#searchResults {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.list-group-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Bill items table */
+#billItemsTable input[type="number"] {
+    width: 80px;
+    text-align: center;
+}
+
+/* Dashboard cards */
+.card.text-white .card-title {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.card.text-white h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .card.text-white h2 {
+        font-size: 2rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar, footer, .btn, .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
+
+/* Tamil text styling */
+.ta-text {
+    font-family: 'Hind Madurai', sans-serif;
+    line-height: 1.6;
+}
+
+/* Bill preview */
+.bill-preview {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.bill-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.bill-header h2 {
+    color: #28a745;
+    font-weight: 700;@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Noto Sans Tamil', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.btn-success {
+    background-color: #2ecc71;
+    border-color: #27ae60;
+}
+
+.btn-success:hover {
+    background-color: #27ae60;
+    border-color: #229954;
+}
+
+.table th {
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(46, 204, 113, 0.05);
+}
+
+.badge-success {
+    background-color: #2ecc71;
+}
+
+.search-box {
+    position: relative;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.search-results.active {
+    display: block;
+}
+
+.search-result-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.search-result-item:hover {
+    background-color: #f0f0f0;
+}
+
+.bill-items-table {
+    margin-top: 20px;
+}
+
+.bill-total {
+    text-align: right;
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+}
+
+.print-area {
+    background-color: white;
+    padding: 20px;
+}
+
+@media print {
+    .no-print {
+        display: none;
+    }
+    
+    .print-area {
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        background-color: white;
+    }
+}
+
+.dashboard-stats {
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 20px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-card i {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.stat-card h3 {
+    font-size: 32px;
+    margin: 10px 0;
+}
+
+.low-stock {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.animation-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+}
+
+/* Low stock alert */
+.low-stock {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}

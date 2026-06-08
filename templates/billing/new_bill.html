@@ -1,0 +1,659 @@
+{% extends "base.html" %}
+
+{% block title %}புதிய பில் - தன்விதா மளிகை{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* அட்டவணை உள்ளீடுகள் */
+    .bill-table input, .bill-table select {
+        border: 1px solid #ccc; border-radius: 6px;
+        padding: 8px; width: 100%; outline: none; font-size: 0.95rem;
+    }
+    .bill-table input:focus, .bill-table select:focus { 
+        border-color: var(--shop-primary); 
+        background-color: #f1f8e9; 
+    }
+    
+    .search-container { position: relative; }
+    
+    /* தேடல் முடிவுகள் */
+    .table-search-results, .cust-search-results {
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: white; border: 1px solid #ddd;
+        border-radius: 0 0 8px 8px; max-height: 250px;
+        overflow-y: auto; z-index: 1050; display: none;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    }
+    .table-search-results.active, .cust-search-results.active { display: block; }
+    
+    .search-item {
+        padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; justify-content: space-between;
+    }
+    .search-item:hover, .search-item.highlighted {
+        background-color: var(--shop-primary); color: white !important;
+    }
+    .search-item.highlighted small { color: #ffeb3b !important; }
+    
+    /* Header Area & Action Buttons */
+    .bill-header-area {
+        background: linear-gradient(135deg, var(--shop-primary) 0%, var(--shop-primary-dark) 100%);
+        color: white; padding: 12px 20px; border-radius: 12px; margin-bottom: 15px;
+    }
+    
+    .top-action-btn {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: white; border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.2s ease;
+    }
+    .top-action-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3); color: white;
+    }
+    .hold-btn {
+        background-color: var(--shop-accent); color: white; border: none; font-weight: bold;
+    }
+    .hold-btn:hover { background-color: #e65100; color: white; }
+
+    /* FIXED: Table Header Visibility */
+    .bill-table-head {
+        background-color: var(--shop-primary-dark) !important;
+    }
+    .bill-table-head th {
+        color: #ffffff !important;
+        font-weight: 600;
+        border-bottom: none;
+        padding: 12px 10px;
+    }
+
+    /* Right Side Total Box */
+    .total-box {
+        background: white; border-radius: 12px; padding: 20px; 
+        border: 2px solid var(--shop-primary);
+    }
+    
+    .product-selected { background-color: #e8f5e9 !important; border-color: #4caf50 !important; font-weight: bold; color: #1b5e20; }
+    .product-error { border-color: #d32f2f !important; background-color: #ffebee !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mb-5">
+    <div class="bill-header-area d-flex justify-content-between align-items-center shadow-sm flex-wrap gap-3">
+        <h5 class="mb-0 fw-bold d-flex align-items-center">
+            <i class="fas fa-bolt text-warning me-2 fs-4"></i> பில்லிங்
+        </h5>
+        
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/billing/previous/" class="btn btn-sm top-action-btn">
+                <i class="fas fa-chevron-left me-1"></i> முந்தைய பில்
+            </a>
+          
+            <button class="btn btn-sm hold-btn ms-2 shadow-sm" onclick="alert('Hold Bill வசதி விரைவில் வரும்!')">
+                <i class="fas fa-pause-circle me-1"></i> Hold Bill
+            </button>
+        </div>
+
+        <span id="current-datetime" class="badge bg-white text-dark p-2 fs-6 shadow-sm"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-9">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="min-height: 400px;">
+                        <table class="table bill-table align-middle mb-0">
+                            <thead class="bill-table-head">
+                                <tr>
+                                    <th width="35%" class="ps-3" style="background-color: #1b5e20;">பொருள் பெயர் (தேடுக)</th>
+                                    <th width="15%" class="text-center"  style="background-color: #1b5e20;">அளவு (Qty)</th>
+                                    <th width="15%" class="text-center"  style="background-color: #1b5e20;">அலகு</th>
+                                    <th width="15%" class="text-center"  style="background-color: #1b5e20;">விலை (₹)</th>
+                                    <th width="15%" class="text-end pe-3"  style="background-color: #1b5e20;">மொத்தம் (₹)</th>
+                                    <th width="5%"  style="background-color: #1b5e20;"></th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="bill-body">
+                                </tbody>
+                        </table>
+                    </div>
+                    <div class="p-3 bg-light border-top">
+                        <button class="btn fw-bold" style="background-color: rgba(0, 105, 92, 0.1); color: var(--shop-primary); border: 1px dashed var(--shop-primary);" onclick="addNewRow()">
+                            <i class="fas fa-plus-circle me-1"></i> அடுத்த வரி (F2)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 mt-4 mt-lg-0">
+            <div class="total-box shadow-sm position-sticky" style="top: 80px;">
+                
+                <div class="mb-4 search-container">
+                    <label class="small fw-bold text-muted mb-1">வாடிக்கையாளர் மொபைல் எண்</label>
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-phone text-muted"></i></span>
+                        <input type="tel" id="cust-phone" class="form-control border-start-0 ps-0 fw-bold" 
+                               placeholder="எண் டைப் செய்க..." maxlength="10" autocomplete="off" oninput="searchCustomer(this)">
+                    </div>
+                    <div class="cust-search-results" id="cust-results"></div>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted fw-bold">இடைத் தொகை:</span>
+                    <strong id="sub-total" class="fs-5">₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted fw-bold">GST வரி:</span>
+                    <strong id="total-gst" class="fs-5 text-secondary">₹0.00</strong>
+                </div>
+                <hr style="border-color: var(--shop-primary); opacity: 0.3;">
+                <div class="text-center mb-4">
+                    <div class="small fw-bold mb-1" style="color: var(--shop-primary);">இறுதி மொத்தம்</div>
+                    <h1 class="display-5 fw-bold mb-0" style="color: var(--shop-primary-dark);" id="grand-total">₹0</h1>
+                </div>
+                
+                <label class="small fw-bold text-muted mb-1">பணம் செலுத்தும் முறை</label>
+                <select id="payment-method" class="form-select mb-4 border-1 shadow-sm fw-bold text-dark" style="border-color: #ccc;">
+                    <option value="Cash">💵 ரொக்கம் (Cash)</option>
+                    <option value="UPI">📱 UPI / GPay</option>
+                    <option value="Card">💳 கார்டு (Card)</option>
+                </select>
+                
+                <button id="save-btn" class="btn btn-lg w-100 fw-bold shadow-sm" style="background-color: var(--shop-primary); color: white;" onclick="saveBill()">
+                    <i class="fas fa-print me-2"></i> பில் போடு (Ctrl+S)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    var searchTimeout = null;
+    var custTimeout = null;
+    var rowCounter = 0; 
+
+    window.appTranslations = Object.assign(window.appTranslations || {}, {
+        billing_title: 'Billing',
+        previous_bill: 'Previous Bill',
+        hold_bill: 'Hold Bill',
+        product_name_search: 'Product Name (Search)',
+        qty: 'Qty',
+        unit: 'Unit',
+        price: 'Price (Rs)',
+        total: 'Total (Rs)',
+        add_next_row: 'Add Next Row (F2)',
+        customer_mobile: 'Customer Mobile Number',
+        type_number: 'Type number...',
+        subtotal: 'Sub Total:',
+        gst_tax: 'GST Tax:',
+        grand_total: 'Grand Total',
+        payment_method: 'Payment Method',
+        print_bill: 'Print Bill (Ctrl+S)',
+        search_product: 'Search product...',
+        kilo: 'Kilo (kg)',
+        gram: 'Gram (g)',
+        liter: 'Liter (L)',
+        milli: 'Milli (ml)',
+        piece: 'Piece (Pc)',
+        packet: 'Packet',
+        stock: 'stock',
+        no_products: 'No products found',
+        saving: 'Saving...',
+        server_error: 'Server error',
+        error: 'Error: ',
+        select_product_error: 'Please select the product correctly.',
+        bill_errors: 'There are errors in the bill:',
+        add_one_product: 'Please add at least one product to create a bill!',
+        row: 'Row'
+    });
+
+    function isEnglish() {
+        return (window.currentAppLanguage || localStorage.getItem('appLanguage')) === 'en';
+    }
+
+    function translateElement(el, englishHtml) {
+        if (!el) return;
+        if (!el.dataset.taHtml) {
+            el.dataset.taHtml = el.innerHTML;
+        }
+        el.innerHTML = isEnglish() ? englishHtml : el.dataset.taHtml;
+    }
+
+    function translatePlaceholder(el, englishText) {
+        if (!el) return;
+        if (!el.dataset.taPlaceholder) {
+            el.dataset.taPlaceholder = el.getAttribute('placeholder') || '';
+        }
+        el.setAttribute('placeholder', isEnglish() ? englishText : el.dataset.taPlaceholder);
+    }
+
+    function applyBillingLanguage() {
+        translateElement(document.querySelector('.bill-header-area h5'), '<i class="fas fa-bolt text-warning me-2 fs-4"></i> Billing');
+        translateElement(document.querySelector('.top-action-btn'), '<i class="fas fa-chevron-left me-1"></i> Previous Bill');
+        translateElement(document.querySelector('.hold-btn'), '<i class="fas fa-pause-circle me-1"></i> Hold Bill');
+
+        var headers = document.querySelectorAll('.bill-table-head th');
+        translateElement(headers[0], 'Product Name (Search)');
+        translateElement(headers[1], 'Qty');
+        translateElement(headers[2], 'Unit');
+        translateElement(headers[3], 'Price (Rs)');
+        translateElement(headers[4], 'Total (Rs)');
+
+        translateElement(document.querySelector('[onclick="addNewRow()"]'), '<i class="fas fa-plus-circle me-1"></i> Add Next Row (F2)');
+        translateElement(document.querySelector('.total-box label'), 'Customer Mobile Number');
+        translatePlaceholder(document.getElementById('cust-phone'), 'Type number...');
+
+        var totalLabels = document.querySelectorAll('.total-box .text-muted.fw-bold');
+        translateElement(totalLabels[1], 'Sub Total:');
+        translateElement(totalLabels[2], 'GST Tax:');
+        translateElement(document.querySelector('.total-box .text-center .small'), 'Grand Total');
+        translateElement(document.querySelectorAll('.total-box label')[1], 'Payment Method');
+        translateElement(document.getElementById('save-btn'), '<i class="fas fa-print me-2"></i> Print Bill (Ctrl+S)');
+
+        document.querySelectorAll('.bill-row').forEach(applyRowLanguage);
+    }
+
+    function applyRowLanguage(row) {
+        if (!row) return;
+        translatePlaceholder(row.querySelector('.search-input'), 'Search product...');
+
+        var unitOptions = row.querySelectorAll('.unit-input option');
+        var englishUnits = ['Kilo (kg)', 'Gram (g)', 'Liter (L)', 'Milli (ml)', 'Piece (Pc)', 'Packet'];
+        unitOptions.forEach(function(option, index) {
+            if (!option.dataset.taText) {
+                option.dataset.taText = option.textContent;
+            }
+            option.textContent = isEnglish() ? englishUnits[index] : option.dataset.taText;
+        });
+    }
+
+    function getProductDisplayName(product) {
+        return isEnglish() && product.name_en ? product.name_en : product.name_ta;
+    }
+
+    document.addEventListener('app-language-change', applyBillingLanguage);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // FIXED: Two rows opening issue. 
+        // Force clear table, reset counter, then add exactly 1 row.
+        var tbody = document.getElementById('bill-body');
+        tbody.innerHTML = ''; 
+        rowCounter = 0; 
+        
+        addNewRow();
+        applyBillingLanguage();
+        
+        setInterval(updateDateTime, 1000);
+        updateDateTime(); 
+    });
+
+    // 1. புதிய வரி உருவாக்கம்
+    function addNewRow() {
+        rowCounter++;
+        var rowId = rowCounter;
+        
+        var tbody = document.getElementById('bill-body');
+        var tr = document.createElement('tr');
+        tr.setAttribute('id', `row-${rowId}`);
+        tr.className = 'bill-row';
+        
+        tr.innerHTML = `
+            <td class="ps-3 search-container">
+                <input type="text" class="search-input fw-bold" placeholder="பொருளைத் தேடுக..." 
+                       oninput="handleSearch(this, ${rowId})" onkeydown="navigateSearch(event, ${rowId})" autocomplete="off">
+                <div class="table-search-results" id="results-${rowId}" data-active-index="-1"></div>
+                <input type="hidden" class="hidden-product-id" value="">
+                <input type="hidden" class="hidden-gst" value="0">
+            </td>
+            <td><input type="number" class="qty-input text-center fw-bold text-primary" value="1" step="any"
+                       oninput="calculateRow(${rowId})" onkeydown="handleEnter(event, ${rowId}, 'qty')"></td>
+            <td>
+                <select class="unit-input border-0 bg-light fw-bold" style="color: var(--shop-primary-dark);" onchange="calculateRow(${rowId})">
+                    <option value="கிலோ">கிலோ (kg)</option>
+                    <option value="கிராம்">கிராம் (g)</option>
+                    <option value="லிட்டர்">லிட்டர் (L)</option>
+                    <option value="மில்லி">மில்லி (ml)</option>
+                    <option value="எண்ணிக்கை">எண்ணிக்கை (Pc)</option>
+                    <option value="பாக்கெட்">பாக்கெட்</option>
+                </select>
+            </td>
+            <td><input type="number" class="price-input text-center fw-bold" value="0" step="any"
+                       oninput="calculateRow(${rowId})" onkeydown="handleEnter(event, ${rowId}, 'price')"></td>
+            <td class="text-end pe-3 fw-bold fs-5" style="color: var(--shop-primary-dark);"><span class="row-total">0.00</span></td>
+            <td class="text-center"><button class="btn btn-sm text-danger border-0 bg-transparent" onclick="removeRow(${rowId})"><i class="fas fa-times fs-5"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+        applyRowLanguage(tr);
+        setTimeout(() => tr.querySelector('.search-input').focus(), 50);
+    }
+
+    // 2. தேடல் லாஜிக்
+    function handleSearch(input, rowId) {
+        if (searchTimeout) clearTimeout(searchTimeout);
+        var query = input.value.trim();
+        var resultsDiv = document.getElementById(`results-${rowId}`);
+        var row = document.getElementById(`row-${rowId}`);
+        
+        row.querySelector('.hidden-product-id').value = '';
+        input.classList.remove('product-selected');
+        input.classList.remove('product-error');
+        resultsDiv.dataset.activeIndex = -1; 
+
+        if (query.length < 2) { resultsDiv.classList.remove('active'); return; }
+
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/search-products?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(products => {
+                    resultsDiv.innerHTML = '';
+                    if (products.length > 0) {
+                        products.forEach((p, idx) => {
+                            var item = document.createElement('div');
+                            item.className = 'search-item';
+                            var safeName = p.name_ta ? p.name_ta.replace(/'/g, "\\'") : 'பெயர் இல்லை';
+                            var productId = p.id || p.product_id; 
+                            if (isEnglish()) {
+                                safeName = getProductDisplayName(p) ? getProductDisplayName(p).replace(/'/g, "\\'") : 'No name';
+                            }
+
+                            item.innerHTML = `<span>${safeName} <small class="text-warning ms-1">(${p.stock} இருப்பு)</small></span> <strong>₹${p.price}</strong>`;
+                            if (isEnglish()) {
+                                item.innerHTML = `<span>${safeName} <small class="text-warning ms-1">(${p.stock} stock)</small></span> <strong>Rs ${p.price}</strong>`;
+                            }
+                            item.onclick = () => selectProduct(rowId, productId, safeName, p.price, p.unit, p.gst_percentage);
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.classList.add('active');
+                    } else {
+                        resultsDiv.innerHTML = '<div class="p-2 text-center text-muted small">பொருட்கள் இல்லை</div>';
+                        resultsDiv.classList.add('active');
+                    }
+                })
+                .catch(err => console.error("Search API Error:", err));
+        }, 150);
+    }
+
+    // 3. Arrow Keys Navigation
+    function navigateSearch(e, rowId) {
+        var resultsDiv = document.getElementById(`results-${rowId}`);
+        if (!resultsDiv.classList.contains('active')) return;
+        
+        var items = resultsDiv.querySelectorAll('.search-item');
+        if (items.length === 0) return;
+
+        var idx = parseInt(resultsDiv.dataset.activeIndex) || -1;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            idx++;
+            if (idx >= items.length) idx = 0;
+            updateHighlight(items, idx, resultsDiv);
+        } 
+        else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            idx--;
+            if (idx < 0) idx = items.length - 1;
+            updateHighlight(items, idx, resultsDiv);
+        } 
+        else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (idx > -1 && items[idx]) {
+                items[idx].click(); 
+            } else if (items.length === 1) {
+                items[0].click(); 
+            }
+        }
+        else if (e.key === 'Escape') {
+            resultsDiv.classList.remove('active');
+        }
+    }
+
+    function updateHighlight(items, idx, resultsDiv) {
+        items.forEach(i => i.classList.remove('highlighted'));
+        if (idx > -1 && items[idx]) {
+            items[idx].classList.add('highlighted');
+            items[idx].scrollIntoView({block: "nearest"});
+            resultsDiv.dataset.activeIndex = idx;
+        }
+    }
+
+    // 4. செலக்ட் செய்தவுடன்
+    function selectProduct(rowId, id, name, price, unit, gst) {
+        try {
+            if (!id || id === 'undefined') throw new Error("பொருளின் ID கிடைக்கவில்லை!");
+
+            var row = document.getElementById(`row-${rowId}`);
+            var searchInput = row.querySelector('.search-input');
+            
+            searchInput.value = name;
+            searchInput.classList.add('product-selected'); 
+            searchInput.classList.remove('product-error');
+            
+            row.querySelector('.hidden-product-id').value = id; 
+            row.querySelector('.hidden-gst').value = gst || 0;
+            row.querySelector('.price-input').value = price || 0;
+            
+            var unitSel = row.querySelector('.unit-input');
+            if(unit && [...unitSel.options].some(o => o.value === unit)) unitSel.value = unit;
+
+            document.getElementById(`results-${rowId}`).classList.remove('active');
+            calculateRow(rowId); 
+            
+            var qtyInput = row.querySelector('.qty-input');
+            qtyInput.focus();
+            qtyInput.select();
+        } catch (error) {
+            console.error("Selection Error:", error);
+            alert("பிழை: " + error.message);
+        }
+    }
+
+    function handleEnter(e, rowId, currentField) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            var row = document.getElementById(`row-${rowId}`);
+            if (currentField === 'qty') {
+                var priceInput = row.querySelector('.price-input');
+                priceInput.focus();
+                priceInput.select();
+            } else if (currentField === 'price') {
+                var rows = document.querySelectorAll('.bill-row');
+                if (rows[rows.length - 1].id === `row-${rowId}`) {
+                    addNewRow(); 
+                } else {
+                    var nextRow = row.nextElementSibling;
+                    if(nextRow) nextRow.querySelector('.search-input').focus();
+                }
+            }
+        }
+    }
+
+    // 5. கணக்கீடு
+    function calculateRow(rowId) {
+        var row = document.getElementById(`row-${rowId}`);
+        if(!row) return;
+
+        var qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        var price = parseFloat(row.querySelector('.price-input').value) || 0;
+        var unit = row.querySelector('.unit-input').value;
+
+        var lineBase = (unit === 'கிராம்' || unit === 'மில்லி') ? (price / 1000) * qty : price * qty;
+        row.querySelector('.row-total').innerText = lineBase.toFixed(2);
+        updateTotals();
+    }
+
+    function updateTotals() {
+        var subTotal = 0;
+        var totalGst = 0;
+        document.querySelectorAll('.bill-row').forEach(row => {
+            var pid = row.querySelector('.hidden-product-id').value;
+            if(pid && pid !== "" && pid !== "undefined") {
+                var lineBase = parseFloat(row.querySelector('.row-total').innerText) || 0;
+                var gstP = parseFloat(row.querySelector('.hidden-gst').value) || 0;
+                subTotal += lineBase;
+                totalGst += (lineBase * gstP / 100);
+            }
+        });
+        
+        document.getElementById('sub-total').innerText = '₹' + subTotal.toFixed(2);
+        document.getElementById('total-gst').innerText = '₹' + totalGst.toFixed(2);
+        document.getElementById('grand-total').innerText = '₹' + Math.round(subTotal + totalGst);
+    }
+
+    function removeRow(rowId) {
+        var rows = document.querySelectorAll('.bill-row');
+        if (rows.length > 1) {
+            document.getElementById(`row-${rowId}`).remove();
+            updateTotals();
+        } else {
+            var row = document.getElementById(`row-${rowId}`);
+            row.querySelector('.search-input').value = '';
+            row.querySelector('.search-input').classList.remove('product-selected', 'product-error');
+            row.querySelector('.hidden-product-id').value = '';
+            row.querySelector('.qty-input').value = '1';
+            row.querySelector('.price-input').value = '0';
+            calculateRow(rowId);
+        }
+    }
+
+    // 6. வாடிக்கையாளர் தேடல்
+    function searchCustomer(input) {
+        if(custTimeout) clearTimeout(custTimeout);
+        var query = input.value.trim();
+        var resultsDiv = document.getElementById('cust-results');
+        
+        if (query.length < 3) { resultsDiv.classList.remove('active'); return; }
+
+        custTimeout = setTimeout(() => {
+            fetch(`/api/search-customers?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(customers => {
+                    resultsDiv.innerHTML = '';
+                    if (customers.length > 0) {
+                        customers.forEach(c => {
+                            var item = document.createElement('div');
+                            item.className = 'search-item';
+                            item.innerHTML = `<strong><i class="fas fa-phone text-muted me-2"></i>${c.phone}</strong> <span>${c.name}</span>`;
+                            item.onclick = () => { input.value = c.phone; resultsDiv.classList.remove('active'); };
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.classList.add('active');
+                    } else { resultsDiv.classList.remove('active'); }
+                })
+                .catch(err => console.error("Customer Search Error:", err));
+        }, 300);
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            document.querySelectorAll('.table-search-results, .cust-search-results').forEach(el => el.classList.remove('active'));
+        }
+    });
+
+    // 7. பில் சேமிக்க
+    function saveBill() {
+        var items = [];
+        var errors = []; 
+
+        try {
+            var rows = document.querySelectorAll('.bill-row');
+            
+            rows.forEach((row, index) => {
+                var searchInput = row.querySelector('.search-input');
+                var pidInput = row.querySelector('.hidden-product-id');
+                
+                if (!searchInput || !pidInput) return; 
+
+                var productName = searchInput.value.trim();
+                var pid = pidInput.value.trim();
+
+                if (productName !== '') {
+                    if (!pid || pid === "" || pid === "undefined") {
+                        errors.push(`வரிசை ${index + 1}: '${productName}' சரியாக செலக்ட் செய்யப்படவில்லை.`);
+                        searchInput.classList.add('product-error');
+                    } else {
+                        searchInput.classList.remove('product-error');
+                        var qty = parseFloat(row.querySelector('.qty-input').value) || 1;
+                        var price = parseFloat(row.querySelector('.price-input').value) || 0;
+                        var unit = row.querySelector('.unit-input').value;
+                        var gstP = parseFloat(row.querySelector('.hidden-gst').value) || 0;
+
+                        var sendQty = (unit === 'கிராம்' || unit === 'மில்லி') ? qty / 1000 : qty;
+                        if (sendQty <= 0) sendQty = 1;
+
+                        items.push({
+                            product_id: parseInt(pid, 10),
+                            quantity: sendQty, 
+                            price: price, 
+                            gst_percent: gstP
+                        });
+                    }
+                }
+            });
+
+            if (errors.length > 0) {
+                alert("பில்லில் பிழைகள் உள்ளன:\n\n" + errors.join("\n"));
+                return; 
+            }
+
+            if (items.length === 0) {
+                alert("பில் உருவாக்க குறைந்தது ஒரு பொருளையாவது சேர்க்கவும்!");
+                return;
+            }
+            
+            var btn = document.getElementById('save-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> சேமிக்கிறது...';
+            btn.disabled = true;
+
+            var payload = {
+                items: items,
+                customer_phone: document.getElementById('cust-phone') ? document.getElementById('cust-phone').value.trim() : "",
+                payment_method: document.getElementById('payment-method') ? document.getElementById('payment-method').value : "Cash",
+                total_amount: parseFloat(document.getElementById('sub-total').innerText.replace('₹','')) || 0,
+                gst_amount: parseFloat(document.getElementById('total-gst').innerText.replace('₹','')) || 0,
+                grand_total: parseFloat(document.getElementById('grand-total').innerText.replace('₹','')) || 0
+            };
+
+            fetch('/api/create-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/billing/view/${data.order_id}`;
+                } else {
+                    throw new Error(data.message || "சர்வரில் பிழை");
+                }
+            })
+            .catch(err => {
+                alert('பிழை: ' + err.message);
+                resetBtn(btn);
+            });
+
+        } catch (fatalError) {
+            alert("பிழை: " + fatalError.message);
+        }
+    }
+
+    function resetBtn(btn) {
+        btn.innerHTML = '<i class="fas fa-print me-2"></i> பில் போடு (Ctrl+S)';
+        if (isEnglish()) {
+            btn.innerHTML = '<i class="fas fa-print me-2"></i> Print Bill (Ctrl+S)';
+        }
+        btn.disabled = false;
+    }
+
+    function updateDateTime() {
+        document.getElementById('current-datetime').innerText = new Date().toLocaleString('ta-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'F2') { e.preventDefault(); addNewRow(); }
+        if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveBill(); }
+    });
+</script>
+{% endblock %}
+{% endblock %}

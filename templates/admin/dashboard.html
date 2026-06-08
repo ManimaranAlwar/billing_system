@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}டாஷ்போர்டு - தன்விதா மளிகை ஸ்டோர்{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* மொபைலுக்கு ஏற்ற புள்ளிவிவர அட்டைகள் */
+    .stat-card {
+        border-radius: 15px;
+        color: white;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 12px;
+        border: none;
+    }
+    
+    .stat-card h3 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin-bottom: 2px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .stat-card p {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+        opacity: 0.9;
+        position: relative;
+        z-index: 2;
+        white-space: nowrap;
+    }
+    
+    .stat-card i {
+        position: absolute;
+        right: -8px;
+        bottom: -10px;
+        font-size: 3.5rem;
+        opacity: 0.25;
+        transform: rotate(-15deg);
+        z-index: 1;
+    }
+
+    /* புதிய Teal & Amber கிரேடியன்ட் நிறங்கள் */
+    .bg-gradient-primary { background: linear-gradient(135deg, var(--shop-primary) 0%, #004D40 100%); }
+    .bg-gradient-accent { background: linear-gradient(135deg, var(--shop-accent) 0%, #E65100 100%); }
+    .bg-gradient-info { background: linear-gradient(135deg, #0288D1 0%, #01579B 100%); }
+    .bg-gradient-success { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); }
+    
+    .custom-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+    }
+    
+    .custom-card-header {
+        background-color: white;
+        border-bottom: 2px solid #f8f9fa;
+        font-weight: bold;
+        color: var(--shop-primary-dark);
+        border-top-left-radius: 15px !important;
+        border-top-right-radius: 15px !important;
+        padding: 12px 15px;
+    }
+
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: none;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="mb-0 fw-bold" style="color: var(--shop-primary-dark);">
+                வணக்கம், {{ current_user.username }}! 👋
+            </h5>
+            <small class="text-muted">இன்றைய நிலவரம் இதோ</small>
+        </div>
+        <a href="{{ url_for('new_bill') }}" class="btn text-white shadow-sm d-md-none" style="background-color: var(--shop-accent); border-radius: 10px; font-weight: bold;">
+            <i class="fas fa-plus me-1"></i> பில்
+        </a>
+    </div>
+    
+    {% if low_stock > 0 %}
+    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-3" role="alert" style="border-radius: 12px;">
+        <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+        <div class="small">
+            <strong>கவனம்! {{ low_stock }}</strong> பொருட்களின் இருப்பு குறைவாக உள்ளது.
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    
+    <div class="row g-2 mb-2">
+        <div class="col-6 col-md-3">
+            <div class="card stat-card bg-gradient-accent">
+                <i class="fas fa-rupee-sign"></i>
+                <h3>₹{{ "%.0f"|format(today_sales) }}</h3>
+                <p>இன்றைய விற்பனை</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card bg-gradient-primary">
+                <i class="fas fa-file-invoice"></i>
+                <h3>{{ total_orders }}</h3>
+                <p>மொத்த பில்கள்</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card bg-gradient-info">
+                <i class="fas fa-boxes-stacked"></i>
+                <h3>{{ total_products }}</h3>
+                <p>மொத்த பொருட்கள்</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card stat-card bg-gradient-success">
+                <i class="fas fa-users"></i>
+                <h3>{{ total_customers }}</h3>
+                <p>வாடிக்கையாளர்கள்</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8 mb-3">
+            <div class="card custom-card">
+                <div class="custom-card-header d-flex align-items-center">
+                    <i class="fas fa-chart-line text-warning me-2"></i> கடந்த 7 நாட்கள் விற்பனை
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height:35vh; width:100%">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-3">
+            <div class="card custom-card h-100">
+                <div class="custom-card-header d-flex align-items-center">
+                    <i class="fas fa-bolt text-warning me-2"></i> விரைவுச் செயல்கள்
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-12 d-none d-lg-block">
+                            <a href="{{ url_for('new_bill') }}" class="btn w-100 text-white mb-2 py-3 fw-bold shadow-sm" style="background-color: var(--shop-accent); border-radius: 12px;">
+                                <i class="fas fa-receipt me-2"></i> புதிய பில் (New Bill)
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('add_product') }}" class="btn btn-outline-primary w-100 py-2 border-2" style="border-radius: 12px; font-size: 0.85rem;">
+                                <i class="fas fa-plus-circle d-block mb-1 fs-5"></i> பொருள் சேர்
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ url_for('admin_customers') }}" class="btn btn-outline-info w-100 py-2 border-2" style="border-radius: 12px; font-size: 0.85rem;">
+                                <i class="fas fa-user-plus d-block mb-1 fs-5"></i> வாடிக்கையாளர்
+                            </a>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <button onclick="exportDailySales()" class="btn btn-light w-100 py-2 border shadow-sm" style="border-radius: 12px; color: var(--shop-primary-dark); font-size: 0.9rem;">
+                                <i class="fas fa-file-excel text-success me-2"></i> இன்றைய விற்பனை அறிக்கை
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card custom-card mb-5">
+        <div class="custom-card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-history text-warning me-2"></i> சமீபத்திய பில்கள்</span>
+            <a href="{{ url_for('bill_history') }}" class="btn btn-sm btn-link text-decoration-none p-0">எல்லாம் காண்க</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="text-muted">
+                            <th class="ps-3">பில் எண்</th>
+                            <th>வாடிக்கையாளர்</th>
+                            <th class="text-end pe-3">மொத்தம்</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td class="ps-3">
+                                <span class="fw-bold">{{ order.bill_number[-6:] }}</span><br>
+                                <small class="text-muted">{{ order.order_date.strftime('%I:%M %p') }}</small>
+                            </td>
+                            <td>
+                                <span class="small fw-bold">{{ order.customer.name if order.customer else 'பொது' }}</span><br>
+                                <span class="badge {% if order.payment_method == 'Cash' or order.payment_method == 'பணம்' %}bg-success-subtle text-success{% else %}bg-info-subtle text-info{% endif %}" style="font-size: 0.65rem;">
+                                    {{ order.payment_method }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-3">
+                                <div class="fw-bold" style="color: var(--shop-primary-dark);">₹{{ "%.0f"|format(order.grand_total) }}</div>
+                                <a href="{{ url_for('view_bill', id=order.id) }}" class="btn btn-sm p-0 text-primary small">
+                                    <i class="fas fa-eye me-1"></i>காண்க
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted small">வியாபாரம் எதுவும் இல்லை</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const salesData = {{ sales_data|safe }};
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        
+        const brandColor = '#00695C';
+        const brandColorLight = 'rgba(0, 105, 92, 0.1)';
+        
+        if (window.salesChartInstance) {
+            window.salesChartInstance.destroy();
+        }
+
+        window.salesChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: salesData.map(item => item.date),
+                datasets: [{
+                    label: 'விற்பனை (₹)',
+                    data: salesData.map(item => item.amount),
+                    borderColor: brandColor,
+                    backgroundColor: brandColorLight,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#FF8F00',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#004D40',
+                        padding: 10,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) { return '₹ ' + context.parsed.y; }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [5, 5], color: '#f0f0f0' },
+                        ticks: {
+                            font: { size: 10 },
+                            callback: function(value) { return value >= 1000 ? '₹' + (value/1000) + 'k' : '₹' + value; }
+                        }
+                    }
+                }
+            }
+        });
+    });
+    
+    function exportDailySales() {
+        window.location.href = '/api/export/daily-sales';
+    }
+</script>
+{% endblock %}
+{% endblock %}

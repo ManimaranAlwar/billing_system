@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}பில் #{{ order.bill_number[-8:] }} - தன்விதா மளிகை{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* கம்ப்யூட்டர் / மொபைல் திரையில் பார்க்க (Web View) */
+    .receipt-wrapper {
+        max-width: 350px; /* Thermal Printer 80mm Size Approximation */
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 20px 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        /* தமிழுக்கு ஏற்ற எழுத்துரு (Font) */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #000;
+        line-height: 1.5;
+    }
+    
+    .receipt-header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
+    .receipt-title { font-size: 24px; font-weight: 800; margin: 0; color: #000; letter-spacing: 0.5px; }
+    .receipt-subtitle { font-size: 14px; font-weight: 600; margin-top: 4px; color: #333; }
+    .receipt-address { font-size: 13px; margin-top: 8px; color: #444; }
+    
+    .receipt-meta { font-size: 13px; margin-bottom: 15px; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+    .receipt-meta .flex-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    
+    .receipt-table { width: 100%; font-size: 13px; margin-bottom: 15px; border-collapse: collapse; }
+    .receipt-table th { border-bottom: 1px solid #000; padding: 6px 0; text-align: left; font-weight: 700; }
+    .receipt-table td { padding: 6px 0; vertical-align: top; }
+    
+    .receipt-totals { border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 10px 0; margin-bottom: 15px; font-size: 14px; font-weight: 500;}
+    .receipt-totals .flex-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .grand-total { font-size: 18px; font-weight: 800; border-top: 1px solid #000; padding-top: 8px; margin-top: 8px; }
+    
+    .receipt-footer { text-align: center; font-size: 12px; font-weight: 600; margin-top: 20px; }
+    
+    /* பட்டன்கள் பகுதி */
+    .action-buttons { max-width: 350px; margin: 20px auto; }
+
+    /* தெர்மல் ப்ரிண்டரில் அச்சிடும்போது (80mm Thermal Print CSS) */
+    @media print {
+        @page {
+            /* இது தெர்மல் பிரிண்டருக்கான துல்லியமான அளவு */
+            size: 80mm auto; 
+            margin: 0; 
+        }
+        
+        body { 
+            background-color: #fff; 
+            margin: 0; 
+            padding: 0; 
+            -webkit-print-color-adjust: exact; 
+        }
+        
+        /* தேவையற்ற பகுதிகளை மறைக்க */
+        body * { visibility: hidden; } 
+        .no-print, .top-navbar, .bottom-nav, .alert-container { display: none !important; }
+        
+        /* பில்லை மட்டும் அச்சிட */
+        #printArea, #printArea * { 
+            visibility: visible; 
+            color: #000 !important; /* மை கறுப்பாக மட்டுமே இருக்க வேண்டும் */
+        }
+        
+        #printArea { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 76mm; /* 80mm பேப்பரில் கொஞ்சம் margin விட 76mm */
+            margin: 0 auto; 
+            padding: 5mm; 
+            box-shadow: none;
+            border-radius: 0;
+        }
+
+        .receipt-header, .receipt-meta, .receipt-totals {
+            border-bottom: 1px dashed #000 !important;
+        }
+        .receipt-totals {
+            border-top: 1px dashed #000 !important;
+        }
+        .grand-total {
+            border-top: 1px solid #000 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 mb-5">
+    
+    <div class="receipt-wrapper" id="printArea">
+        
+        <div class="receipt-header">
+            <div class="no-print mb-2"><i class="fas fa-shopping-basket fa-2x text-muted"></i></div>
+            
+            <h2 class="receipt-title">{{ settings.shop_name_ta or 'தன்விதா மளிகை' }}</h2>
+            <div class="receipt-subtitle">{{ settings.shop_name_en or 'THANVITHA GROCERY' }}</div>
+            
+            <div class="receipt-address">
+                {{ settings.address_ta }}<br>
+                மொபைல்: {{ settings.phone }}<br>
+                {% if settings.gst_no %}GST No: {{ settings.gst_no }}{% endif %}
+            </div>
+        </div>
+        
+        <div class="receipt-meta">
+            <div class="flex-row">
+                <div><strong>பில் எண்:</strong> {{ order.bill_number[-8:] }}</div>
+                <div><strong>தேதி:</strong> <span class="ist-date" data-utc="{{ order.order_date.strftime('%Y-%m-%dT%H:%M:%S') }}">{{ order.order_date.strftime('%d/%m/%Y') }}</span></div>
+            </div>
+            <div class="flex-row">
+                <div><strong>நேரம்:</strong> <span class="ist-time" data-utc="{{ order.order_date.strftime('%Y-%m-%dT%H:%M:%S') }}">{{ order.order_date.strftime('%I:%M %p') }}</span></div>
+                <div><strong>முறை:</strong> {{ order.payment_method }}</div>
+            </div>
+            
+            {% if order.customer %}
+            <div style="margin-top: 8px; border-top: 1px dotted #ccc; padding-top: 5px;">
+                <strong>வாடிக்கையாளர்:</strong> {{ order.customer.name }} ({{ order.customer.phone }})
+            </div>
+            {% endif %}
+        </div>
+        
+        <table class="receipt-table">
+            <thead>
+                <tr>
+                    <th width="50%">பொருள்</th>
+                    <th width="20%" style="text-align: center;">அளவு</th>
+                    <th width="30%" style="text-align: right;">தொகை(₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items %}
+                <tr>
+                    <td>{{ item.product.name_ta }}</td>
+                    <td style="text-align: center;">{{ item.quantity|round(2) }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(item.total) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="receipt-totals">
+            <div class="flex-row">
+                <span>இடைத் தொகை:</span>
+                <span>₹{{ "%.2f"|format(order.total_amount) }}</span>
+            </div>
+            
+            <div class="flex-row">
+                <span>GST வரி:</span>
+                <span>₹{{ "%.2f"|format(order.tax_amount) }}</span>
+            </div>
+            
+            {% if order.discount > 0 %}
+            <div class="flex-row">
+                <span>தள்ளுபடி:</span>
+                <span>- ₹{{ "%.2f"|format(order.discount) }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="flex-row grand-total">
+                <span>இறுதி மொத்தம்:</span>
+                <span>₹{{ "%.0f"|format(order.grand_total) }}</span>
+            </div>
+        </div>
+        
+        <div class="receipt-footer">
+            <p style="margin: 0;">{{ settings.bill_footer_ta or 'நன்றி! மீண்டும் வருக!' }}</p>
+            <p style="margin: 4px 0 0 0; font-size: 11px;">*** {{ settings.bill_footer_en or 'Thank You! Visit Again!' }} ***</p>
+        </div>
+        
+    </div>
+    <div class="action-buttons no-print d-grid gap-2">
+        <button onclick="window.print()" class="btn btn-lg text-white shadow-sm fw-bold mb-2" style="background-color: #00695C; border-radius: 10px;">
+            <i class="fas fa-print me-2"></i> பில்லை அச்சிடுக (Print)
+        </button>
+        
+        <div class="row g-2">
+            <div class="col-6">
+                <a href="{{ url_for('download_pdf', id=order.id) }}" class="btn btn-outline-danger w-100 bg-white fw-bold" style="border-radius: 10px;">
+                    <i class="fas fa-file-pdf me-1"></i>டவுன்லோட்
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{{ url_for('new_bill') }}" class="btn w-100 text-white shadow-sm fw-bold" style="background: linear-gradient(135deg, var(--shop-primary) 0%, #FBC02D 100%); border: none; border-radius: 10px;">
+                    <i class="fas fa-plus-circle me-1"></i> புதிய பில் (F4)
+                </a>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+{% block extra_js %}
+<script>
+    var receiptEnglishData = {
+        shopName: {{ (settings.shop_name_en or 'Thanvitha Grocery')|tojson }},
+        address: {{ (settings.address_en or '')|tojson }},
+        footer: {{ (settings.bill_footer_en or 'Thank you! Visit again!')|tojson }},
+        products: {{ order.items|map(attribute='product.name_en')|list|tojson }}
+    };
+
+    function applyReceiptLanguage() {
+        const isEnglish = (window.currentAppLanguage || localStorage.getItem('appLanguage')) === 'en';
+        const title = document.querySelector('.receipt-title');
+        const address = document.querySelector('.receipt-address');
+        const footer = document.querySelector('.receipt-footer p');
+        const productCells = document.querySelectorAll('.receipt-table tbody td:first-child');
+
+        if (title) {
+            if (!title.dataset.taHtml) title.dataset.taHtml = title.innerHTML;
+            title.innerHTML = isEnglish ? receiptEnglishData.shopName : title.dataset.taHtml;
+        }
+        if (address) {
+            if (!address.dataset.taHtml) address.dataset.taHtml = address.innerHTML;
+            if (isEnglish) {
+                const gstLine = address.innerHTML.includes('GST No') ? '<br>' + address.innerHTML.split('<br>').filter(line => line.includes('GST No')).join('') : '';
+                address.innerHTML = `${receiptEnglishData.address}<br>Mobile: {{ settings.phone }}${gstLine}`;
+            } else {
+                address.innerHTML = address.dataset.taHtml;
+            }
+        }
+        if (footer) {
+            if (!footer.dataset.taHtml) footer.dataset.taHtml = footer.innerHTML;
+            footer.innerHTML = isEnglish ? receiptEnglishData.footer : footer.dataset.taHtml;
+        }
+        productCells.forEach((cell, index) => {
+            if (!cell.dataset.taHtml) cell.dataset.taHtml = cell.innerHTML;
+            cell.innerHTML = isEnglish && receiptEnglishData.products[index] ? receiptEnglishData.products[index] : cell.dataset.taHtml;
+        });
+    }
+
+    document.addEventListener('app-language-change', applyReceiptLanguage);
+    document.addEventListener('DOMContentLoaded', applyReceiptLanguage);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. இந்திய நேரத்திற்கு மாற்றும் லாஜிக் (IST Timezone Converter) ---
+        // சர்வரில் பதிவான நேரத்தை (UTC) எடுத்து துல்லியமான இந்திய நேரமாக மாற்றுகிறது.
+        const dateElems = document.querySelectorAll('.ist-date');
+        const timeElems = document.querySelectorAll('.ist-time');
+        
+        dateElems.forEach(el => {
+            let utcStr = el.getAttribute('data-utc');
+            if (utcStr) {
+                // "Z" சேர்ப்பதன் மூலம் இது UTC நேரம் என பிரவுசருக்கு கூறுகிறோம்
+                let d = new Date(utcStr + "Z"); 
+                if (!isNaN(d)) {
+                    // இந்திய நேரப்படி தேதியை மாற்றுகிறோம்
+                    el.innerText = d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' });
+                }
+            }
+        });
+
+        timeElems.forEach(el => {
+            let utcStr = el.getAttribute('data-utc');
+            if (utcStr) {
+                let d = new Date(utcStr + "Z"); 
+                if (!isNaN(d)) {
+                    // இந்திய நேரப்படி நேரத்தை (AM/PM) மாற்றுகிறோம்
+                    el.innerText = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+                }
+            }
+        });
+    });
+
+    // --- 2. கீபோர்டு ஷார்ட்கட்ஸ் ---
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+P அழுத்தினால் பிரிண்ட் ஆகும்
+        if (e.key === 'p' && e.ctrlKey) {
+            e.preventDefault();
+            window.print();
+        }
+        // F4 அழுத்தினால் அடுத்த பில் போட சென்றுவிடும்
+        if (e.key === 'F4') {
+            e.preventDefault();
+            window.location.href = "{{ url_for('new_bill') }}";
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

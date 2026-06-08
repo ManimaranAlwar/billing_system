@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}வாடிக்கையாளர் விவரம் - தன்விதா மளிகை ஸ்டோர்{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        max-height: 350px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        margin-top: 5px;
+    }
+    .search-results.active { display: block; }
+    .search-result-item {
+        padding: 12px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: all 0.2s;
+    }
+    .search-result-item:hover {
+        background-color: rgba(0, 105, 92, 0.05);
+        transform: translateX(5px);
+    }
+    
+    .custom-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .custom-card-header {
+        background: linear-gradient(135deg, var(--shop-primary) 0%, var(--shop-primary-dark) 100%);
+        color: white;
+        border-top-left-radius: 15px !important;
+        border-top-right-radius: 15px !important;
+        padding: 15px 20px;
+        font-weight: bold;
+    }
+    
+    /* Stats Box Styling */
+    .stat-box {
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px 10px;
+        text-align: center;
+        border: 1px solid #eee;
+    }
+    .stat-box i { font-size: 1.5rem; margin-bottom: 8px; color: var(--shop-accent); }
+    .stat-box strong { font-size: 1.2rem; color: var(--shop-primary-dark); display: block; }
+    .stat-box small { color: #6c757d; font-size: 0.8rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+    
+    <div class="card custom-card mb-4">
+        <div class="custom-card-header d-flex align-items-center">
+            <h5 class="mb-0"><i class="fas fa-search text-warning me-2"></i> வாடிக்கையாளர் தேடல்</h5>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            <div class="search-box position-relative">
+                <div class="input-group input-group-lg shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                        <i class="fas fa-user-circle"></i>
+                    </span>
+                    <input type="text" id="customerSearch" class="form-control border-start-0 ps-0" 
+                           placeholder="பெயர் அல்லது மொபைல் எண் டைப் செய்க..." autocomplete="off" autofocus>
+                </div>
+                <div class="search-results" id="customerResults"></div>
+            </div>
+            <div class="text-center mt-3 text-muted small" id="search-hint">
+                <i class="fas fa-info-circle me-1"></i> வாடிக்கையாளரின் பில்களைக் காண அவர்களைத் தேடித் தேர்ந்தெடுக்கவும்
+            </div>
+        </div>
+    </div>
+    
+    <div id="customerDetailsArea" style="display: none;">
+        
+        <div class="row g-4 mb-4">
+            <div class="col-lg-5">
+                <div class="card custom-card h-100 border-success border-1">
+                    <div class="card-body p-4" id="customerProfile">
+                        </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-7">
+                <div class="card custom-card h-100">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-chart-line me-2"></i> வியாபார சுருக்கம்</h6>
+                        <div class="row g-3" id="customerStats">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card custom-card mb-5">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                <h6 class="mb-0 fw-bold" style="color: var(--shop-primary-dark);">
+                    <i class="fas fa-receipt text-warning me-2"></i> வாங்கிய பில்களின் பட்டியல்
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-3 d-none d-md-table-cell">பில் எண்</th>
+                                <th>தேதி & நேரம்</th>
+                                <th class="text-center">மொத்தம் (₹)</th>
+                                <th class="text-center">முறை</th>
+                                <th class="text-end pe-3">செயல்</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billsList">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('customerSearch');
+    const resultsDiv = document.getElementById('customerResults');
+    let searchTimeout;
+    
+    // Live Search Logic
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        let query = this.value.trim();
+        
+        if (query.length < 2) {
+            resultsDiv.classList.remove('active');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/search-customers?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(customers => {
+                let html = '';
+                if (customers.length > 0) {
+                    customers.forEach(customer => {
+                        let safeName = customer.name.replace(/'/g, "\\'");
+                        let safePhone = customer.phone || '';
+                        let safeEmail = customer.email ? customer.email.replace(/'/g, "\\'") : '';
+                        let safeAddress = customer.address ? customer.address.replace(/'/g, "\\'") : '';
+                        
+                        html += `
+                        <div class="search-result-item d-flex justify-content-between align-items-center" 
+                             onclick="window.loadCustomerHistory(${customer.id}, '${safeName}', '${safePhone}', '${safeEmail}', '${safeAddress}')">
+                            <div>
+                                <h6 class="mb-0 fw-bold" style="color: var(--shop-primary-dark);"><i class="fas fa-user text-muted me-2"></i>${customer.name}</h6>
+                                <small class="text-muted ms-4">${customer.phone}</small>
+                            </div>
+                            <i class="fas fa-chevron-right text-light"></i>
+                        </div>`;
+                    });
+                } else {
+                    html = '<div class="p-3 text-center text-muted">வாடிக்கையாளர் கிடைக்கவில்லை</div>';
+                }
+                resultsDiv.innerHTML = html;
+                resultsDiv.classList.add('active');
+            })
+            .catch(err => console.error("Search Error:", err));
+        }, 300);
+    });
+    
+    // Fetch and Display Customer History
+    window.loadCustomerHistory = function(id, name, phone, email, address) {
+        searchInput.value = name;
+        resultsDiv.classList.remove('active');
+        document.getElementById('search-hint').style.display = 'none';
+        
+        // Setup Profile UI
+        document.getElementById('customerProfile').innerHTML = `
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-success bg-opacity-10 p-3 rounded-circle me-3">
+                    <i class="fas fa-user-tie fa-2x text-success"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-1" style="color: var(--shop-primary-dark);">${name}</h5>
+                    <span class="badge bg-light text-dark border"><i class="fas fa-phone-alt me-1 text-muted"></i> ${phone}</span>
+                </div>
+            </div>
+            ${email ? `<div class="mb-2 small"><i class="fas fa-envelope text-muted me-2"></i> ${email}</div>` : ''}
+            ${address ? `<div class="small"><i class="fas fa-map-marker-alt text-muted me-2"></i> ${address}</div>` : ''}
+        `;
+        
+        // Fetch Bills Data
+        fetch(`/api/customer/${id}/history`)
+        .then(res => res.json())
+        .then(data => {
+            let totalSpent = data.orders.reduce((sum, order) => sum + order.total, 0);
+            let avgBill = data.orders.length > 0 ? (totalSpent / data.orders.length) : 0;
+            
+            // Setup Stats UI
+            document.getElementById('customerStats').innerHTML = `
+                <div class="col-4">
+                    <div class="stat-box">
+                        <i class="fas fa-shopping-bag"></i>
+                        <strong>${data.orders.length}</strong>
+                        <small>மொத்த பில்கள்</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-box">
+                        <i class="fas fa-rupee-sign"></i>
+                        <strong>${totalSpent.toFixed(0)}</strong>
+                        <small>மொத்த செலவு</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-box">
+                        <i class="fas fa-chart-pie"></i>
+                        <strong>${avgBill.toFixed(0)}</strong>
+                        <small>சராசரி பில்</small>
+                    </div>
+                </div>
+            `;
+            
+            // Setup Bills Table UI
+            let billsHtml = '';
+            if (data.orders.length === 0) {
+                billsHtml = '<tr><td colspan="5" class="text-center py-4 text-muted">இவர் இதுவரை எந்த பொருளும் வாங்கவில்லை</td></tr>';
+            } else {
+                data.orders.forEach(order => {
+                    let paymentBadge = '';
+                    if(order.payment_method === 'Cash' || order.payment_method === 'பணம்') {
+                        paymentBadge = `<span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">ரொக்கம்</span>`;
+                    } else if(order.payment_method === 'UPI') {
+                        paymentBadge = `<span class="badge bg-info bg-opacity-10 text-info border border-info-subtle">UPI</span>`;
+                    } else {
+                        paymentBadge = `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">கார்டு</span>`;
+                    }
+
+                    billsHtml += `
+                    <tr>
+                        <td class="ps-3 d-none d-md-table-cell"><strong class="text-muted">${order.bill_number[-8:] || order.bill_number}</strong></td>
+                        <td>
+                            <div class="d-md-none fw-bold text-muted mb-1">${order.bill_number[-8:] || order.bill_number}</div>
+                            <small class="text-dark"><i class="far fa-calendar-alt me-1 text-muted"></i> ${order.date}</small>
+                        </td>
+                        <td class="text-center fw-bold" style="color: var(--shop-primary-dark);">₹${order.total.toFixed(0)}</td>
+                        <td class="text-center">${paymentBadge}</td>
+                        <td class="text-end pe-3">
+                            <a href="/billing/view/${order.id}" class="btn btn-sm btn-light text-primary border rounded-circle" style="width: 32px; height: 32px; padding: 4px;">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('billsList').innerHTML = billsHtml;
+            
+            // Show the area
+            document.getElementById('customerDetailsArea').style.display = 'block';
+        })
+        .catch(err => console.error("History Error:", err));
+    };
+    
+    // Hide search results on outside click
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-box')) {
+            resultsDiv.classList.remove('active');
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

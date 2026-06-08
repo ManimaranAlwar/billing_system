@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}தன்விதா மளிகை ஸ்டோர்{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* --- NEW COLOR PATTERN: Market Teal & Amber --- */
+        :root {
+            --shop-primary: #00695C; /* Deep Teal */
+            --shop-primary-dark: #004D40;
+            --shop-accent: #FF8F00; /* Amber for Billing */
+            --shop-bg: #F4F7F6;
+        }
+
+        body { 
+            background-color: var(--shop-bg); 
+            padding-bottom: 80px; /* Space for the bottom icon nav */
+        }
+        
+        .top-navbar {
+            background: linear-gradient(135deg, var(--shop-primary), var(--shop-primary-dark));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .navbar-brand { font-weight: 700; letter-spacing: 0.5px; color: white !important; }
+
+        .language-toggle {
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-weight: 700;
+            line-height: 1;
+            min-width: 82px;
+        }
+
+        .language-toggle:hover {
+            background: rgba(255, 255, 255, 0.22);
+            color: white;
+        }
+
+        /* --- MOBILE ICON-ONLY BOTTOM NAVIGATION --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 0;
+            z-index: 1030;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+
+        .nav-icon-btn {
+            color: #78909C;
+            font-size: 1.5rem; /* Large icons */
+            padding: 10px 20px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Active State for Icons */
+        .nav-icon-btn.active {
+            color: var(--shop-primary);
+            background-color: rgba(0, 105, 92, 0.1);
+        }
+
+        /* Special Floating Action Button for "New Bill" */
+        .fab-bill {
+            background: linear-gradient(135deg, var(--shop-primary) 0%, #FBC02D 100%);
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 0 0 56px;
+            font-size: 1.55rem;
+            line-height: 1;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(0, 105, 92, 0.28);
+            transform: translateY(-14px); /* Lifts it up out of the bar */
+            border: 4px solid var(--shop-bg);
+            overflow: hidden;
+        }
+
+        .fab-bill i { line-height: 1; }
+        
+        .fab-bill:hover, .fab-bill:active {
+            background: linear-gradient(135deg, var(--shop-primary-dark) 0%, #FFCA28 100%);
+            color: white;
+            transform: translateY(-14px) scale(1.04);
+        }
+
+        /* Hide bottom nav on very large desktop screens (optional) */
+        @media (min-width: 992px) {
+            .bottom-nav { display: none; }
+            body { padding-bottom: 0; }
+        }
+        
+        /* Sticky Alerts */
+        .alert-container { position: sticky; top: 10px; z-index: 1050; }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    
+    <nav class="navbar navbar-expand top-navbar sticky-top py-2">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('admin_dashboard') }}">
+                <i class="fas fa-store me-2 text-warning"></i> 
+                <span>தன்விதா மளிகை</span>
+            </a>
+            
+            <ul class="navbar-nav ms-auto flex-row align-items-center">
+                <li class="nav-item me-2">
+                    <button type="button" class="btn btn-sm language-toggle" id="language-toggle" title="Change language">
+                        English
+                    </button>
+                </li>
+                <li class="nav-item me-3">
+                    <a class="nav-link text-white" href="{{ url_for('admin_settings') }}">
+                        <i class="fas fa-cog fa-lg"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white opacity-75" href="{{ url_for('logout') }}">
+                        <i class="fas fa-power-off fa-lg"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="bottom-nav d-lg-none">
+        <a href="{{ url_for('admin_dashboard') }}" class="nav-icon-btn {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+            <i class="fas fa-chart-pie"></i>
+        </a>
+        
+        <a href="{{ url_for('admin_products') }}" class="nav-icon-btn {% if 'product' in request.endpoint or 'categor' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-boxes-stacked"></i>
+        </a>
+        
+        <a href="{{ url_for('new_bill') }}" class="fab-bill">
+            <i class="fas fa-file-invoice-dollar"></i>
+        </a>
+        
+        <a href="{{ url_for('bill_history') }}" class="nav-icon-btn {% if request.endpoint == 'bill_history' %}active{% endif %}">
+            <i class="fas fa-clock-rotate-left"></i>
+        </a>
+        
+        <a href="{{ url_for('admin_customers') }}" class="nav-icon-btn {% if 'customer' in request.endpoint %}active{% endif %}">
+            <i class="fas fa-users"></i>
+        </a>
+    </div>
+
+    <div class="d-none d-lg-block bg-white shadow-sm mb-4">
+        <div class="container-fluid py-2 d-flex justify-content-center gap-4">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-light"><i class="fas fa-chart-pie me-2"></i>டாஷ்போர்டு</a>
+            <a href="{{ url_for('new_bill') }}" class="btn btn-warning fw-bold text-white" style="background-color: var(--shop-accent); border: none;"><i class="fas fa-file-invoice-dollar me-2"></i>புதிய பில்</a>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-light"><i class="fas fa-boxes-stacked me-2"></i>பொருட்கள்</a>
+            <a href="{{ url_for('bill_history') }}" class="btn btn-light"><i class="fas fa-clock-rotate-left me-2"></i>வரலாறு</a>
+            <a href="{{ url_for('admin_customers') }}" class="btn btn-light"><i class="fas fa-users me-2"></i>வாடிக்கையாளர்கள்</a>
+        </div>
+    </div>
+
+    {% endif %}
+    {% if not current_user.is_authenticated %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1060;">
+        <button type="button" class="btn btn-sm language-toggle" id="language-toggle" title="Change language" style="background-color: var(--shop-primary);">
+            English
+        </button>
+    </div>
+    {% endif %}
+    
+    <div class="alert-container container-fluid px-3 pt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0" role="alert">
+                        <i class="fas fa-info-circle me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="container-fluid pb-4 mt-2"> 
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <script>
+        window.appTranslations = Object.assign({
+            nav_dashboard: 'Dashboard',
+            nav_new_bill: 'New Bill',
+            nav_products: 'Products',
+            nav_history: 'History',
+            nav_customers: 'Customers'
+        }, window.appTranslations || {});
+
+        function setAppLanguage(lang) {
+            var selectedLang = lang === 'en' ? 'en' : 'ta';
+            localStorage.setItem('appLanguage', selectedLang);
+            document.documentElement.lang = selectedLang;
+
+            document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                if (!el.dataset.taHtml) {
+                    el.dataset.taHtml = el.innerHTML;
+                }
+
+                var translated = window.appTranslations[el.dataset.i18n];
+                el.innerHTML = selectedLang === 'en' && translated ? translated : el.dataset.taHtml;
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+                if (!el.dataset.taPlaceholder) {
+                    el.dataset.taPlaceholder = el.getAttribute('placeholder') || '';
+                }
+
+                var translated = window.appTranslations[el.dataset.i18nPlaceholder];
+                el.setAttribute('placeholder', selectedLang === 'en' && translated ? translated : el.dataset.taPlaceholder);
+            });
+
+            var desktopLinks = [
+                ["/admin/dashboard", "nav_dashboard"],
+                ["/billing/new", "nav_new_bill"],
+                ["/admin/products", "nav_products"],
+                ["/billing/history", "nav_history"],
+                ["/admin/customers", "nav_customers"]
+            ];
+
+            desktopLinks.forEach(function(item) {
+                var href = item[0];
+                var key = item[1];
+                document.querySelectorAll('.d-none.d-lg-block a[href*="' + href + '"]').forEach(function(link) {
+                    if (!link.dataset.taHtml) {
+                        link.dataset.taHtml = link.innerHTML;
+                    }
+                    if (selectedLang === 'en') {
+                        var icon = link.querySelector('i');
+                        link.innerHTML = (icon ? icon.outerHTML + ' ' : '') + window.appTranslations[key];
+                    } else {
+                        link.innerHTML = link.dataset.taHtml;
+                    }
+                });
+            });
+
+            var toggle = document.getElementById('language-toggle');
+            if (toggle) {
+                toggle.textContent = selectedLang === 'en' ? 'Tamil' : 'English';
+                toggle.setAttribute('aria-label', selectedLang === 'en' ? 'Switch to Tamil' : 'Switch to English');
+            }
+
+            window.currentAppLanguage = selectedLang;
+            document.dispatchEvent(new CustomEvent('app-language-change', { detail: { lang: selectedLang } }));
+        }
+
+        $(document).ready(function() {
+            setAppLanguage(localStorage.getItem('appLanguage') || 'ta');
+
+            setTimeout(function() {
+                $('.alert').fadeOut(300);
+            }, 3000);
+        });
+    </script>
+
+    <script src="{{ url_for('static', filename='js/app-language.js') }}"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
